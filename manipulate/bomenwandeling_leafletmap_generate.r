@@ -28,14 +28,14 @@ bomen_imgs_metadata$fotonummer <- tools::file_path_sans_ext(basename(bomen_imgs)
 
 # read in manual photo info
 bomen_info <- read_csv(
-  'media/20171009_bomenwandeling_jette_bomeninfo.csv', 
+  'data/20171009_bomenwandeling_jette_bomeninfo.csv', 
   col_types = cols(
     fotonummer = col_character(),
     boom_naam = col_character(),
     lokalisatie_label = col_character(),
     optionele_detailfoto = col_character(),
-    lat_manueel = col_character(),
-    lon_manueel = col_character()
+    lat_manueel = col_double(),
+    lon_manueel = col_double()
   ))
 
 # merge photo metadata & info
@@ -47,7 +47,14 @@ bomen_info <- left_join(
     mutate(fotonummer = tools::file_path_sans_ext(FileName)),
   by = 'fotonummer') %>%
   rename_all(str_to_lower)
-bomen_info %>% glimpse()
+# bomen_info %>% glimpse()
+bomen_info %>%
+  select(fotonummer, boom_naam, gpslatitude, gpslongitude)
+
+bomen_info <- bomen_info %>%
+  mutate(
+    gpslatitude = ifelse(is.na(lat_manueel), gpslatitude, lat_manueel),
+    gpslongitude = ifelse(is.na(lon_manueel), gpslongitude, lon_manueel))
 
 # generate popup-html
 bomen_info <- bomen_info %>%
@@ -69,28 +76,69 @@ bomen_info <- bomen_info %>%
 
 
 
-icons <- awesomeIcons(
+tree_icon <- awesomeIcons(
   icon = 'fa-tree',
   iconColor = 'black',
   library = 'fa',
   markerColor = 'green'
 )
 
+flag_icon <- awesomeIcons(
+  icon = 'fa-flag',
+  iconColor = 'black',
+  library = 'fa',
+  markerColor = 'red'
+)
+
+beer_icon <- awesomeIcons(
+  icon = 'fa-beer',
+  iconColor = 'black',
+  library = 'fa',
+  markerColor = 'orange'
+)
+
 map <- leaflet() %>%
-  addProviderTiles("OpenMapSurfer.Roads", group = "Road map") %>%
-  addProviderTiles("Esri.WorldImagery", group = "Satellite") %>%
+  addProviderTiles("OpenMapSurfer.Roads", group = "Routekaart") %>%
+  addProviderTiles("Esri.WorldImagery", group = "Satelliet") %>%
   addLayersControl(
-    # baseGroups = c("Topographical", "Road map", "Satellite"),
-    baseGroups = c("Road map", "Satellite"),
-    overlayGroups = c("Hiking routes", "Photo markers"),
+    # baseGroups = c("Topographical", "Routekaart", "Satelliet"),
+    baseGroups = c("Routekaart", "Satelliet"),
+    overlayGroups = c("Wandelroute", "Markeringen"),
     options = layersControlOptions(collapsed = FALSE))
 
 map <- map %>% 
-  addPolylines(data = gpx.track.deel1) %>%
-  addPolylines(data = gpx.track.deel2)
+  addPolylines(data = gpx.track.deel1, group = "Wandelroute") %>%
+  addPolylines(data = gpx.track.deel2, group = "Wandelroute")
 
 map <- map %>%
-  addAwesomeMarkers(lat = bomen_info$gpslatitude, lng = bomen_info$gpslongitude, popup = bomen_info$popup, icon=icons)
+  addAwesomeMarkers(
+    lat = bomen_info$gpslatitude, 
+    lng = bomen_info$gpslongitude, 
+    popup = bomen_info$popup, 
+    icon=tree_icon, 
+    group = "Markeringen")
+
+map <- map %>%
+  addAwesomeMarkers(
+    lat = 50.8811744, 
+    lng = 4.328147, 
+    popup = "<p><b>Start- en eindpunt</b> van de bomenwandeling in de Molenbeekvallei is op de parking van het station van Jette (achterkant).<p>",
+    icon=flag_icon, 
+    group = "Markeringen")
+
+map <- map %>%
+  addAwesomeMarkers(
+    lat = 50.8846628, 
+    lng = 4.3009835, 
+    popup = "<p><b>Chalet van Laarbeek</b> ongeveer halverwege de wandeling: mogelijkheid voor drinkpauze.<p>",
+    icon=beer_icon, 
+    group = "Markeringen")
+
+map <- map %>% 
+  addLegend(position = 'bottomright',opacity = 0.4, 
+            colors = c('blue', 'red', 'orange'), 
+            labels = c('Station Jette - Koning Boudewijnpark - Laarbeekbos', 'Start- en eindpunt', 'Pauze: Chalet van Laarbeek'),
+            title = 'Bomenwandeling in de Molenbeekvallei  (5,5km)')
 
 saveWidget(map, 'bomenwandeling_jette.html')
 
@@ -116,4 +164,7 @@ saveWidget(map, 'bomenwandeling_jette.html')
 #   #   #coordinates(wp)[100,1], coordinates(wp)[100,2],
 #   #   popup = as.vector(popups_html), 
 #   #   group="Foto-markeringen") %>%
-  
+
+rm(bomen_imgs, bomen_imgs_metadata, bomen_info,
+   gpx.track.deel1, gpx.track.deel2, flag_icon, tree_icon,
+   map, beer_icon)
