@@ -8,6 +8,7 @@ library(leaflet)
 library(readr)
 library(stringr)
 library(htmlwidgets)
+library(here)
 
 # install.packages("devtools")
 # devtools::install_github("paleolimbot/exifr")
@@ -18,8 +19,8 @@ library(exifr) # for reading EXIF photo-metadata
 # library(magick)
 
 # read in GPX-track (in two parts)
-gpx.track.deel1 <- readOGR('data/tracks/17-4-2017 14_24.gpx', layer = "tracks")
-gpx.track.deel2 <- readOGR('data/tracks/17-4-2017 17_34.gpx', layer = "tracks")
+gpx.track.deel1 <- readOGR(here::here('data/tracks/17-4-2017 14_24.gpx'), layer = "tracks")
+gpx.track.deel2 <- readOGR(here::here('data/tracks/17-4-2017 17_34.gpx'), layer = "tracks")
 
 
 # Read in photo metadata
@@ -29,7 +30,7 @@ bomen_imgs_metadata$fotonummer <- tools::file_path_sans_ext(basename(bomen_imgs)
 
 # read in manual photo info
 bomen_info <- read_csv(
-  'data/20171009_bomenwandeling_jette_bomeninfo.csv', 
+  here::here('data/20171009_bomenwandeling_jette_bomeninfo.csv'), 
   col_types = cols(
     fotonummer = col_character(),
     boom_naam = col_character(),
@@ -108,7 +109,7 @@ beer_icon <- awesomeIcons(
 
 # base map layer with two tile-sets
 map <- leaflet() %>%
-  addProviderTiles("OpenMapSurfer.Roads", group = "Routekaart") %>%
+  addProviderTiles("OpenStreetMap.Mapnik", group = "Routekaart") %>%
   addProviderTiles("Esri.WorldImagery", group = "Satelliet") %>%
   addLayersControl(
     # baseGroups = c("Topographical", "Routekaart", "Satelliet"),
@@ -155,8 +156,7 @@ map <- map %>%
             title = 'Bomenwandeling in de Molenbeekvallei  (5,5km)')
 
 # export map to selfcontained HTML-file
-saveWidget(map, 'output/bomenwandeling_jette.html')
+saveWidget(map, here::here('output/bomenwandeling_jette.html'), selfcontained = TRUE)
 
 rm(bomen_imgs, bomen_imgs_metadata, bomen_info,
-   gpx.track.deel1, gpx.track.deel2, flag_icon, tree_icon,
-   map, beer_icon)
+   gpx.track.deel1, gpx.track.deel2, flag_icon, tree_icon, map, beer_icon)
